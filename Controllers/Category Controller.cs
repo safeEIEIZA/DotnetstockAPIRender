@@ -1,0 +1,128 @@
+using DotnetStockAPI.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DotnetStockAPI.Controllers;
+
+// Multiple Roles
+// [Authorize(Roles = UserRolesModel.Admin + "," + UserRolesModel.Manager)]
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+[EnableCors("MultipleOrigins")]
+
+public class CategoryController : ControllerBase
+{
+    // สร้าง Object ของ ApplicationDbContext
+    private readonly ApplicationDbContext _context;
+
+    // ฟังก์ชันสร้าง Constructor รับค่า ApplicationDbContext
+    public CategoryController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    // CRUD Category
+    // ฟังก์ชันสำหรับการดึงข้อมูล Category ทั้งหมด
+    // GET /api/Category
+
+    [HttpGet]
+
+    public ActionResult<Category> GetCategories()
+    {
+        //LINQ Stand For "Language Integrated Query"
+        var categories = _context.categories.ToList(); // select * from category
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(categories);
+    }
+
+    // ฟังก์ชันสำหรับการดึงข้อมูล Category ตาม ID
+    // GET /api/Category/1
+
+    [HttpGet("{id}")]
+    public ActionResult<Category> GetCategory(int id)
+    {
+        // LINQ สำหรับการดึงข้อมูลจากตาราง Categories ตาม ID
+        var Category = _context.categories.Find(id); // select * from category where id = 1
+
+        //ถ้าไม่พบข้อมูล
+        if(Category == null)
+        {
+            return NotFound();
+        }
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น Json
+        return Ok(Category);
+    }
+
+    // ฟังก์ชันสำหรับการเพิ่มข้อมูล Category
+    // POST /api/Category
+    // [Authorize(Roles = UserRolesModel.Admin + "," + UserRolesModel.Manager)]
+    [HttpPost]
+    public ActionResult<Category> AddCategory([FromBody] Category Category)
+    {
+       // เพิ่มข้อมูลลงในตาราง Categories
+        _context.categories.Add(Category); // insert into category values (...)
+        _context.SaveChanges(); // commit
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(Category);
+    }
+
+    // ฟังก์ชันสำหรับการแก้ไขข้อมูล Category
+    // PUT /api/Category/1
+    [HttpPut("{id}")]
+
+    public ActionResult<Category> UpdateCategory(int id, [FromBody] Category Category)
+    {
+        // ค้นหาข้อมูล Category ตาม ID
+         var cat = _context.categories.Find(id); // select * from category where id = 1
+
+
+
+         // ถ้าไม่พบข้อมูลให้ return NotFound
+        if(cat == null)
+        {
+            return NotFound();
+        }
+
+
+
+        // แก้ไขข้อมูล Category
+        cat.categoryname = Category.categoryname; // update category set categoryname = '...' where id = 1
+        cat.categorystatus = Category.categorystatus; // update category set categorystatus = '...' where id = 1
+
+        // commit
+        _context.SaveChanges();
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(cat);
+    }
+
+    // ฟังก์ชันสำหรับการลบข้อมูล Category
+    // DELETE /api/Category/1
+    [HttpDelete("{id}")]
+    public ActionResult<Category> DeleteCategory(int id)
+    {
+        // ค้นหาข้อมูล Category ตาม ID
+        var cat = _context.categories.Find(id); // select * from category where id = 1
+
+        // ถ้าไม่พบข้อมูลให้ return NotFound
+        if(cat == null)
+        {
+            return NotFound();
+        }
+
+        // ลบข้อมูล Category
+        _context.categories.Remove(cat); // delete from category where id = 1
+        _context.SaveChanges(); // commit
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(cat);
+    }
+
+
+
+}
