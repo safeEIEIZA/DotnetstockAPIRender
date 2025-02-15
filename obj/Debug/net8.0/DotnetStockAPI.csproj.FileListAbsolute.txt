@@ -121,3 +121,4 @@ C:\Users\Sarawut\Desktop\WorkshopAngularDotNet\DotnetStockAPI\bin\Debug\net8.0\P
 C:\Users\Sarawut\Desktop\WorkshopAngularDotNet\DotnetStockAPI\bin\Debug\net8.0\Publish\DotnetStockAPI.runtimeconfig.json
 C:\Users\Sarawut\Desktop\WorkshopAngularDotNet\DotnetStockAPI\bin\Debug\net8.0\Publish\package-lock.json
 C:\Users\Sarawut\Desktop\WorkshopAngularDotNet\DotnetStockAPI\bin\Debug\net8.0\Publish\package.json
+C:\Users\Sarawut\Desktop\WorkshopAngularDotNet\DotnetStockAPI\obj\Debug\net8.0\DotnetStockAPI.sourcelink.json
