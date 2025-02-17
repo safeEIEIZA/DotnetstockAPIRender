@@ -7,7 +7,7 @@ public class EventController : ControllerBase
     public class Event
     {
         public int Id { get; set; }
-        public string Title { get; set; } 
+        public string Title { get; set; }
         public DateTime Start { get; set; }
         public DateTime? End { get; set; }
     }
@@ -20,8 +20,6 @@ public class EventController : ControllerBase
             new Event { Id = 4, Title = "ส่งงาน", Start = new DateTime(2025, 2, 27, 9, 30, 0) }, 
             new Event { Id = 5, Title = "จัดเลี้ยง", Start = new DateTime(2025, 3, 2, 19, 0, 0) },
             new Event { Id = 6, Title = "วันหยุด", Start = new DateTime(2025, 3, 2, 19, 0, 0) }
-
-
     };
 
     [HttpGet]
@@ -29,4 +27,5 @@ public class EventController : ControllerBase
     {
         return Ok(Events);
     }
+
 }

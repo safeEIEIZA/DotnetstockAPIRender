@@ -1,9 +1,4 @@
-﻿﻿using System;
-using System.Collections.Generic;
-
-namespace DotnetStockAPI.Models;
-
-public partial class Product
+﻿﻿public partial class Product
 {
     public int productid { get; set; }
 
@@ -20,4 +15,11 @@ public partial class Product
     public DateTime createddate { get; set; }
 
     public DateTime? modifieddate { get; set; }
+
+    // Constructor เพื่อกำหนดค่าเริ่มต้น
+    public Product()
+    {
+        createddate = DateTime.Now; // กำหนดค่า default
+        // กำหนดค่า default อื่น ๆ ถ้าจำเป็น
+    }
 }

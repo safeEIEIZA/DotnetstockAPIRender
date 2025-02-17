@@ -4,3 +4,21 @@ GET {{DotnetStockAPI_HostAddress}}/Authenticate/testconnectdb
 Accept: application/json
 
 ###
+
+POST {DotnetStockAPI_HostAddress}}/Authenticate/testconnectdb
+Accept: application/json
+
+###
+
+
+DELETE {{DotnetStockAPI_HostAddress}}/Authenticate/testconnectdb
+Accept: application/json
+
+###
+
+
+PUT  {{DotnetStockAPI_HostAddress}}/Authenticate/testconnectdb
+Accept: application/json
+
+###
+

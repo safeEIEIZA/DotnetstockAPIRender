@@ -9,6 +9,6 @@ public class LoginModel
     public string? Username { get; set; }
     
     [Required(ErrorMessage = "Password is required จำเป็นต้องมีรหัสผ่าน❗❗❗")]
-     [MinLength(6, ErrorMessage = "Password is too short รหัสสั้นไปอีหนู💦💨🚮")]
+    [MinLength(6, ErrorMessage = "Password is too short รหัสสั้นไปอีหนู💦💨🚮")]
     public string? Password { get; set; }
 }

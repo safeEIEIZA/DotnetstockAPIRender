@@ -19,11 +19,11 @@ public partial class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // เพิ่มส่วนนี้เข้าไป
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Category>(entity =>
         {
-
-            base.OnModelCreating(modelBuilder);
-
             entity.HasKey(e => e.categoryid).HasName("category_pkey");
 
             entity.ToTable("category");

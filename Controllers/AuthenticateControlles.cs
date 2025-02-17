@@ -56,88 +56,62 @@ public class AuthenticateController : ControllerBase
     // Post api/authenticate/register-user
     [HttpPost]
     [Route("register-user")]
-    public async Task<ActionResult> RegisterUser([FromBody] RegisterModel model)
+public async Task<ActionResult> RegisterUser([FromBody] RegisterModel model)
+{
+    // เช็คว่า username ซ้ำหรือไม่
+    var userExists = await _userManager.FindByNameAsync(model.Username);
+    if (userExists != null)
     {
-        // เช็คว่า username ซ้ำหรือไม่
-        var userExists = await _userManager.FindByNameAsync(model.Username);
-        if (userExists != null)
+        return BadRequest(new ResponseModel
         {
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                new ResponseModel
-                {
-                    Status = "Error",
-                    Message = "User already exists!"
-                }
-            );
-        }
-
-        // เช็คว่า email ซ้ำหรือไม่
-        userExists = await _userManager.FindByEmailAsync(model.Email);
-        if (userExists != null)
-        {
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                new ResponseModel
-                {
-                    Status = "Error",
-                    Message = "Email already exists!"
-                }
-            );
-        }
-
-        // สร้าง User
-        IdentityUser user = new()
-        {
-            Email = model.Email,
-            SecurityStamp = Guid.NewGuid().ToString(),
-            UserName = model.Username
-        };
-
-        // สร้าง User ในระบบ
-        var result = await _userManager.CreateAsync(user, model.Password);
-
-        // ถ้าสร้างไม่สำเร็จ
-        if (!result.Succeeded)
-        {
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                new ResponseModel
-                {
-                    Status = "Error",
-                    Message = "User creation failed! Please check user details and try again."
-                }
-            );
-        }
-
-        // ถ้าไม่มี Role Admin ให้สร้าง Role Admin ใหม่
-        if (!await _roleManager.RoleExistsAsync(UserRolesModel.Admin))
-        {
-            await _roleManager.CreateAsync(new IdentityRole(UserRolesModel.Admin));
-        } 
-
-        // ถ้าไม่มี Role Manager ให้สร้าง Role Manager ใหม่
-        if (!await _roleManager.RoleExistsAsync(UserRolesModel.Manager))
-        {
-            await _roleManager.CreateAsync(new IdentityRole(UserRolesModel.Manager));
-        }
-
-        // ถ้าไม่มี Role User ให้สร้าง Role User ใหม่ และเพิ่ม User ลงใน Role User
-        if (!await _roleManager.RoleExistsAsync(UserRolesModel.User))
-        {
-            await _roleManager.CreateAsync(new IdentityRole(UserRolesModel.User));
-            await _userManager.AddToRoleAsync(user, UserRolesModel.User);
-        } else {
-            await _userManager.AddToRoleAsync(user, UserRolesModel.User);
-        }
-
-        return Ok(new ResponseModel
-        {
-            Status = "Success",
-            Message = "User registered successfully"
+            Status = "Error",
+            Message = "Username นี้ถูกใช้ไปแล้ว!"
         });
     }
-    
+
+    // เช็คว่า email ซ้ำหรือไม่
+    userExists = await _userManager.FindByEmailAsync(model.Email);
+    if (userExists != null)
+    {
+        return BadRequest(new ResponseModel
+        {
+            Status = "Error",
+            Message = "Email นี้ถูกใช้ไปแล้ว!"
+        });
+    }
+
+    // สร้าง User
+    IdentityUser user = new()
+    {
+        Email = model.Email,
+        SecurityStamp = Guid.NewGuid().ToString(),
+        UserName = model.Username
+    };
+
+    var result = await _userManager.CreateAsync(user, model.Password);
+    if (!result.Succeeded)
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel
+        {
+            Status = "Error",
+            Message = "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้!"
+        });
+    }
+
+    // กำหนด Role ให้กับ User ใหม่
+    if (!await _roleManager.RoleExistsAsync(UserRolesModel.User))
+    {
+        await _roleManager.CreateAsync(new IdentityRole(UserRolesModel.User));
+    }
+    await _userManager.AddToRoleAsync(user, UserRolesModel.User);
+
+    return Ok(new ResponseModel
+    {
+        Status = "Success",
+        Message = "สมัครสมาชิกสำเร็จ!"
+    });
+}
+
     // Register for Manager
     // Post api/authenticate/register-manager
     [HttpPost]
@@ -437,13 +411,58 @@ public class AuthenticateController : ControllerBase
 
         return Unauthorized();
     }
+    
 
     public class RefreshTokenModel
     {
         public required string Token { get; set; }
     }
 
+    // Validate Token Endpoint
+    [HttpPost]
+    [Route("validate-token")]
+    public IActionResult ValidateToken([FromBody] TokenValidationModel model)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!);
 
+        try
+        {
+            tokenHandler.ValidateToken(model.Token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true, // Ensure the token is not expired
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
 
+            var jwtToken = (JwtSecurityToken)validatedToken;
+            var userName = jwtToken.Claims.First(x => x.Type == ClaimTypes.Name).Value;
+            var roles = jwtToken.Claims.Where(x => x.Type == ClaimTypes.Role).Select(x => x.Value).ToList();
+
+            return Ok(new
+            {
+                Status = "Success",
+                UserName = userName,
+                Roles = roles
+            });
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new
+            {
+                Status = "Error",
+                Message = "Token is not valid",
+                Details = ex.Message
+            });
+        }
+    }
+
+    public class TokenValidationModel
+    {
+        public required string Token { get; set; }
+    }
 
 }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 
 namespace DotnetStockAPI.Controllers;
 
@@ -13,11 +12,10 @@ namespace DotnetStockAPI.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [EnableCors("MultipleOrigins")]
-
-public class ProductController : ControllerBase
+public class ProductController: ControllerBase
 {
-
-private readonly ApplicationDbContext _context;
+    // สร้าง Object ของ ApplicationDbContext
+    private readonly ApplicationDbContext _context;
 
     // IWebHostEnvironment คืออะไร
     // ContentRootPath: เส้นทางไปยังโฟลเดอร์รากของเว็บแอปพลิเคชัน
@@ -31,15 +29,9 @@ private readonly ApplicationDbContext _context;
         _env = env;
     }
 
-    // ฟังก์ชันสร้าง Constructor รับค่า ApplicationDbContext
-    // public ProductController(ApplicationDbContext context)
-    // {
-    //     _context = context;
-    // }
-
     // ฟังก์ชันสำหรับการดึงข้อมูลสินค้าทั้งหมด
     // GET /api/Product
-      [HttpGet]
+    [HttpGet]
     public ActionResult<Product> GetProducts(
         [FromQuery] int page=1, 
         [FromQuery] int limit=100, 
@@ -107,47 +99,87 @@ private readonly ApplicationDbContext _context;
         );
     }
 
-    // // ฟังก์ชันสำหรับการดึงข้อมูลสินค้าตาม id
-    // // GET /api/Product/1
-    // [HttpGet("{id}")]
-    // public ActionResult<Product> GetProduct(int id)
-    // {
-    //     // LINQ สำหรับการดึงข้อมูลจากตาราง Products ตาม ID
-    //     // var product = _context.products.Find(id);
+    // ฟังก์ชันสำหรับการดึงข้อมูลสินค้าตาม id
+    // GET /api/Product/1
+    [HttpGet("{id}")]
+    public ActionResult<Product> GetProduct(int id)
+    {
+        // LINQ สำหรับการดึงข้อมูลจากตาราง Products ตาม ID
+        // var product = _context.products.Find(id);
 
-    //     // แบบเชื่อมกับตารางอื่น products เชื่อมกับ categories
-    //     var product = _context.products
-    //     .Join(
-    //         _context.categories,
-    //         p => p.categoryid,
-    //         c => c.categoryid,
-    //         (p, c) => new
-    //         {
-    //             p.productid,
-    //             p.productname,
-    //             p.unitprice,
-    //             p.unitinstock,
-    //             p.productpicture,
-    //             p.categoryid,
-    //             p.createddate,
-    //             p.modifieddate,
-    //             c.categoryname
-    //         }
-    //     )
-    //     .FirstOrDefault(p => p.productid == id);
+        // แบบเชื่อมกับตารางอื่น products เชื่อมกับ categories
+        var product = _context.products
+        .Join(
+            _context.categories,
+            p => p.categoryid,
+            c => c.categoryid,
+            (p, c) => new
+            {
+                p.productid,
+                p.productname,
+                p.unitprice,
+                p.unitinstock,
+                p.productpicture,
+                p.categoryid,
+                p.createddate,
+                p.modifieddate,
+                c.categoryname
+            }
+        )
+        .FirstOrDefault(p => p.productid == id);
 
-    //     // ถ้าไม่พบข้อมูล
-    //     if (product == null)
-    //     {
-    //         return NotFound();
-    //     }
+        // ถ้าไม่พบข้อมูล
+        if (product == null)
+        {
+            return NotFound();
+        }
 
-    //     // ส่งข้อมูลกลับไปให้ Client เป็น JSON
-    //     return Ok(product);
-    // }
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(product);
+    }
 
+    // ฟังก์ชันสำหรับการเพิ่มข้อมูลสินค้า
+    // POST: /api/Product
+    [HttpPost]
+    public async Task<ActionResult<Product>> CreateProduct([FromForm] Product product, IFormFile? image)
+    {
+        // เพิ่มข้อมูลลงในตาราง Products
+        _context.products.Add(product);
 
-     // ฟังก์ชันสำหรับการแก้ไขข้อมูลสินค้า
+        // ถ้ามีการอัพโหลดไฟล์
+        if(image != null)
+        {
+            // กำหนดชื่อไฟล์รูปภาพใหม่
+            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+
+            // กำหนดเส้นทางไปยังโฟลเดอร์ uploads
+            string uploadFolder = Path.Combine(_env.WebRootPath, "uploads");
+
+            // ตรวจสอบว่าโฟลเดอร์ uploads มีหรือไม่
+            if (!Directory.Exists(uploadFolder))
+            {
+                Directory.CreateDirectory(uploadFolder);
+            }
+
+            using (var fileStream = new FileStream(Path.Combine(uploadFolder, fileName), FileMode.Create))
+            {
+                await image.CopyToAsync(fileStream);
+            }
+
+            // บันทึกชื่อไฟล์รูปภาพลงในฐานข้อมูล
+            product.productpicture = fileName;
+
+        } else {
+            product.productpicture = "noimg.jpg";
+        }
+
+        _context.SaveChanges();
+
+        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
+        return Ok(product);
+    }
+
+    // ฟังก์ชันสำหรับการแก้ไขข้อมูลสินค้า
     // PUT: /api/Product/1
     [HttpPut("{id}")]
     public async Task<ActionResult<Product>> UpdateProduct(int id, [FromForm] Product product, IFormFile? image)
@@ -205,79 +237,7 @@ private readonly ApplicationDbContext _context;
         return Ok(existingProduct);
     }
 
-
-
-    // [HttpGet("{id}")]
-
-    // public ActionResult<Product> GetProducts(int id)
-    // {
-    //     // LINQ สำหรับการดึงข้อมูลจากตาราง Product ทั้งหมด
-    //     var product = _context.products.Find(id);
-
-    //     //ถ้าไม่พบข้อมูล
-    //     if(product == null )
-    //     {
-    //         return NotFound();
-    //     }
-
-    //     //ส่งข้อมูลกลับไปให้ Client เป็น JSOn
-    //     return Ok(product);
-    // }
-
-     [HttpPost]
-    public async Task<ActionResult<Product>> CreateProduct([FromForm] Product product, IFormFile? image)
-    {
-        // เพิ่มข้อมูลลงในตาราง Products
-        _context.products.Add(product);
-
-        // ถ้ามีการอัพโหลดไฟล์
-        if(image != null)
-        {
-            // กำหนดชื่อไฟล์รูปภาพใหม่
-            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
-
-            // กำหนดเส้นทางไปยังโฟลเดอร์ uploads
-            string uploadFolder = Path.Combine(_env.WebRootPath, "uploads");
-
-            // ตรวจสอบว่าโฟลเดอร์ uploads มีหรือไม่
-            if (!Directory.Exists(uploadFolder))
-            {
-                Directory.CreateDirectory(uploadFolder);
-            }
-
-            using (var fileStream = new FileStream(Path.Combine(uploadFolder, fileName), FileMode.Create))
-            {
-                await image.CopyToAsync(fileStream);
-            }
-
-            // บันทึกชื่อไฟล์รูปภาพลงในฐานข้อมูล
-            product.productpicture = fileName;
-
-        } else {
-            product.productpicture = "noimg.jpg";
-        }
-
-        _context.SaveChanges();
-
-        // ส่งข้อมูลกลับไปให้ Client เป็น JSON
-        return Ok(product);
-    }
-
-    // //ฟังก์ชันสำหรับสินค้าเพิ่มข้อมูลสินค้า
-    // // POST; /api/Product
-    // [HttpPost]
-
-    //     public ActionResult<Product> CreateProducts([FromBody] Product  product)
-    // {
-    //     // เพื่มข้อมูลในตาราง Products
-    //     _context.products.Add(product);
-    //     _context.SaveChanges();
-
-
-    //     //ส่งข้อมูลกลับไปให้ Client เป็น JSOn
-    //     return Ok(product);
-    // }
-        // ฟังก์ชันสำหรับการลบข้อมูลสินค้า
+    // ฟังก์ชันสำหรับการลบข้อมูลสินค้า
     // DELETE /api/Product/1
     [HttpDelete("{id}")]
     public ActionResult<Product> DeleteProduct(int id)

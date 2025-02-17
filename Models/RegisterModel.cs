@@ -9,11 +9,11 @@ public class RegisterModel
     [MinLength(3, ErrorMessage = "Username is too short")]
     public required string Username { get; set; }
     
-    [Required(ErrorMessage = "Email is required สมัครเมลเป็นมั้ย💌")]
-    [EmailAddress(ErrorMessage = "Email is not valid ใส่เมลไม่ถูกค้าบอ้วง")]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Email is not valid")]
     public required string Email { get; set; }
     
-    [Required(ErrorMessage = "Password is required จำเป็นต้องมีรหัสผ่านคะ❗❗❗")]
-    [MinLength(6, ErrorMessage = "Password is too short รหัสสั้นไปอีหนู💦💨🚮 ")]
+    [Required(ErrorMessage = "Password is required")]
+    [MinLength(6, ErrorMessage = "Password is too short")]
     public required string Password { get; set; }
 }

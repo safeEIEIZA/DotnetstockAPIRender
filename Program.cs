@@ -11,95 +11,93 @@ var builder = WebApplication.CreateBuilder(args);
 // For Entity Framework with Npgsql
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
 {
-    // options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")); // Local
-    _ = options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnectionRender")); // Render
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")); // Local
 });
 
-        // Adding Identity
-        builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+// Adding Identity
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
-        // Adding Authentication
-        builder.Services.AddAuthentication(options =>
+// Adding Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+// Adding Jwt Bearer
+.AddJwtBearer(options  => {
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false;
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration.GetSection("JWT:ValidAudience").Value!,
+        ValidIssuer = builder.Configuration.GetSection("JWT:ValidIssuer").Value!,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("JWT:Secret").Value!))
+    };
+});
+
+// Allow CORS
+builder.Services.AddCors(options => 
+{
+    options.AddPolicy("MultipleOrigins",
+    policy =>
+    {
+        policy.WithOrigins(
+            // "*" // Allow all origins
+            "https://itgenius.co.th", // Allow specific origin
+            "https://*.itgenius.co.th/", // Allow subdomain
+            "https://*.azurewebsites.net/", // Azure Apps
+            "https://*.netlify.app/", // Netlify Apps
+            "https://*.vercel.app/", // Vercel Apps
+            "https://*.herokuapp.com/", // Heroku Apps
+            "https://*.firebaseapp.com/", // Firebase Apps
+            "https://*.github.io/", // Github Pages
+            "https://*.gitlab.io/", // Gitlab Pages
+            "https://*.onrender.com/", // Render Apps
+            "https://*.surge.sh/", // Surge Apps
+            "http://localhost:8080", // Vue , Svelte Apps
+            "http://localhost:4200", // Angular Apps
+            "http://localhost:3000", // React Apps
+            "http://localhost:5173", // Vite Apps
+            "http://localhost:5000", // Blazor Apps
+            "http://localhost:5001" // Blazor Apps
+        )
+        .SetIsOriginAllowedToAllowWildcardSubdomains()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+        // Allow specific headers
+        // .WithHeaders("Content-Type", "Authorization")
+        // Allow specific methods
+        // .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+    });
+});
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(
+    options =>
+    {
+        options.SupportNonNullableReferenceTypes();
+        options.SwaggerDoc("v1", new() { Title = "Stock API with .NET 8 and PostgreSQL", Version = "v1" });
+
+        options.AddSecurityDefinition("Bearer",  new OpenApiSecurityScheme()
         {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        // Adding Jwt Bearer
-        .AddJwtBearer(options =>
-        {
-            options.SaveToken = true;
-            options.RequireHttpsMetadata = false;
-            options.TokenValidationParameters = new TokenValidationParameters()
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidAudience = builder.Configuration.GetSection("JWT:ValidAudience").Value!,
-                ValidIssuer = builder.Configuration.GetSection("JWT:ValidIssuer").Value!,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("JWT:Secret").Value!))
-            };
+            Name = "Authorization",
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+            BearerFormat= "JWT",
+            In = ParameterLocation.Header,
+            Description = "JWT Authorization header using the Bearer scheme."
         });
 
-        // Allow CORS
-        builder.Services.AddCors(options =>
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
         {
-            options.AddPolicy("MultipleOrigins",
-            policy =>
-            {
-                policy.WithOrigins(
-                    // "*" // Allow all origins
-                    "https://itgenius.co.th", // Allow specific origin
-                    "https://*.itgenius.co.th/", // Allow subdomain
-                    "https://*.azurewebsites.net/", // Azure Apps
-                    "https://*.netlify.app/", // Netlify Apps
-                    "https://*.vercel.app/", // Vercel Apps
-                    "https://*.herokuapp.com/", // Heroku Apps
-                    "https://*.firebaseapp.com/", // Firebase Apps
-                    "https://*.github.io/", // Github Pages
-                    "https://*.gitlab.io/", // Gitlab Pages
-                    "https://*.onrender.com/", // Render Apps
-                    "https://*.surge.sh/", // Surge Apps
-                    "http://localhost:8080", // Vue , Svelte Apps
-                    "http://localhost:4200", // Angular Apps
-                    "http://localhost:3000", // React Apps
-                    "http://localhost:5173", // Vite Apps
-                    "http://localhost:5000", // Blazor Apps
-                    "http://localhost:5001" // Blazor Apps
-                )
-                .SetIsOriginAllowedToAllowWildcardSubdomains()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-                // Allow specific headers
-                // .WithHeaders("Content-Type", "Authorization")
-                // Allow specific methods
-                // .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
-            });
-        });
-
-        builder.Services.AddControllers();
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        builder.Services.AddEndpointsApiExplorer();
-
-        builder.Services.AddSwaggerGen(
-            options =>
-            {
-                options.SupportNonNullableReferenceTypes();
-                options.SwaggerDoc("v1", new() { Title = "StockAPI", Version = "v1" });
-
-                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
-                {
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer",
-                    BearerFormat = "JWT",
-                    In = ParameterLocation.Header,
-                    Description = "JWT Authorization header using the Bearer scheme."
-                });
-
-                options.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
             {
                 new OpenApiSecurityScheme
                 {
@@ -111,48 +109,39 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 },
                 new string[] {}
             }
-                });
-            }
-        );
+        });
+    }
+);
 
-        var app = builder.Build();
+var app = builder.Build();
 
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction()) // Adjust according to your needs
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-        // ✅ อนุญาตให้เสิร์ฟไฟล์ static จาก wwwroot
-        app.UseStaticFiles();
+// Use Static Files
+app.UseStaticFiles();
 
+// Redirect HTTP to HTTPS
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();  // Only use HTTPS redirection in non-development environments
+}
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment() || app.Environment.IsProduction()) // Adjust according to your needs
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+app.UseHttpsRedirection();
 
-        // Redirect HTTP to HTTPS
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseHttpsRedirection();  // Only use HTTPS redirection in non-development environments
-        }
+// Use CORS
+app.UseCors("MultipleOrigins");
 
-        app.UseHttpsRedirection();
+// Add Authentication
+app.UseAuthentication();
 
-        // Redirect HTTP to HTTPS
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseHttpsRedirection();
-        }
+// Add Authorization
+app.UseAuthorization();
 
-        // Use CORS
-        app.UseCors("MultipleOrigins");
+app.MapControllers();
 
-        // Add Authentication
-        app.UseAuthentication();
-
-        // Add Authorization
-        app.UseAuthorization();
-
-        app.MapControllers();
-
-        app.Run();
-    
+app.Run();
